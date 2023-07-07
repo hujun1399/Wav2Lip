@@ -42,9 +42,57 @@ syncnet_T = 5
 syncnet_mel_step_size = 16
 
 
+class MemoryDataHandler(object):
+    def __init__(self, dataset_type):
+        self.all_videos = get_image_list(args.data_root, dataset_type)
+        self.all_images = self._load_image_in_memory()
+        self.all_audios_mel = self._load_audio_in_memory()
+
+    def get_image(self, file_name):
+        """
+            file_name: image file path
+        """
+        if file_name not in self.all_images:
+            return None
+        return self.all_images[file_name]
+    
+    def get_audio_mel(self, vidname):
+        if vidname not in self.all_audios_mel:
+            return None
+        return self.all_audios_mel[vidname]
+
+    def _load_image_in_memory(self):
+        all_images = {}
+        print("[MemoryDataHandler] start to load image into memory...")
+        for idx in tqdm(range(len(self.all_videos))):
+            vidname = self.all_videos[idx]
+            img_names = list(glob(join(vidname, '*.jpg')))
+            for img_name in img_names:
+                img = cv2.imread(img_name)
+                if img is not None:
+                    all_images[img_name] = img
+        return all_images
+
+    def _load_audio_in_memory(self):
+        all_audios_mel = {}
+        print("[MemoryDataHandler] start to load audio into memory...")
+        for idx in tqdm(range(len(self.all_videos))):
+            vidname = self.all_videos[idx]
+            try:
+                wavpath = join(vidname, "audio.wav")
+                wav = audio.load_wav(wavpath, hparams.sample_rate)
+
+                orig_mel = audio.melspectrogram(wav).T
+                all_audios_mel[vidname] = orig_mel
+            except Exception as e:
+                continue
+        return all_audios_mel
+
+
 class Dataset(object):
-    def __init__(self, split):
+    def __init__(self, split, memory_data_hander=None):
         self.all_videos = get_image_list(args.data_root, split)
+        self.memory_data_hander = memory_data_hander
 
     def get_frame_id(self, frame):
         return int(basename(frame).split('.')[0])
@@ -100,7 +148,11 @@ class Dataset(object):
             window = []
             all_read = True
             for fname in window_fnames:
-                img = cv2.imread(fname)
+                if self.memory_data_hander and self.memory_data_hander.get_image(fname) is not None:
+                    img = self.memory_data_hander.get_image(fname)
+                else:
+                    print("[warning] failed to find image in dict")
+                    img = cv2.imread(fname)
                 if img is None:
                     all_read = False
                     break
@@ -111,17 +163,21 @@ class Dataset(object):
                     break
 
                 window.append(img)
-
+        
             if not all_read:
                 continue
 
-            try:
-                wavpath = join(vidname, "audio.wav")
-                wav = audio.load_wav(wavpath, hparams.sample_rate)
+            if self.memory_data_hander and self.memory_data_hander.get_audio_mel(vidname) is not None:
+                orig_mel = self.memory_data_hander.get_audio_mel(vidname)
+            else:
+                print("[waring] failed to find mel in dict")
+                try:
+                    wavpath = join(vidname, "audio.wav")
+                    wav = audio.load_wav(wavpath, hparams.sample_rate)
 
-                orig_mel = audio.melspectrogram(wav).T
-            except Exception as e:
-                continue
+                    orig_mel = audio.melspectrogram(wav).T
+                except Exception as e:
+                    continue
 
             mel = self.crop_audio_window(orig_mel.copy(), img_name)
 
@@ -177,8 +233,6 @@ def train(device, model, train_data_loader, test_data_loader, optimizer,
             global_step += 1
             cur_session_steps = global_step - resumed_step
             running_loss += loss.item()
-
-            # print("global_epoch={}, global_step={}, cur_loss={}".format(global_epoch, global_step, loss.item()))
 
             if global_step == 1 or global_step % checkpoint_interval == 0:
                 save_checkpoint(
@@ -273,11 +327,12 @@ if __name__ == "__main__":
         os.mkdir(checkpoint_dir)
 
     # Dataset and Dataloader setup
-    train_dataset = Dataset('train')
-    test_dataset = Dataset('val')
+    train_memory_handler = MemoryDataHandler("train")
+    train_dataset = Dataset('train', memory_data_hander=train_memory_handler)
+    test_dataset = Dataset('test')
 
     train_data_loader = data_utils.DataLoader(
-        train_dataset, batch_size=hparams.syncnet_batch_size, shuffle=True,
+        train_dataset, batch_size=hparams.syncnet_batch_size, shuffle=True, pin_memory=True,
         num_workers=hparams.num_workers)
 
     test_data_loader = data_utils.DataLoader(
