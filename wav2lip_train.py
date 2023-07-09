@@ -278,7 +278,8 @@ def train(device, model, train_data_loader, test_data_loader, optimizer,
                     average_sync_loss, averaged_recon_loss = eval_model(
                         test_data_loader, global_step, device, model, checkpoint_dir)
 
-                    if average_sync_loss < .75:
+                    # if average_sync_loss < .75:
+                    if average_sync_loss < .9:
                         # without image GAN a lesser weight is sufficient
                         hparams.set_hparam('syncnet_wt', 0.01)                   
 
