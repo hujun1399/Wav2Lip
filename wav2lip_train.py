@@ -35,6 +35,10 @@ parser.add_argument('--syncnet_checkpoint_path',
 parser.add_argument('--checkpoint_path',
                     help='Resume from this checkpoint', default=None, type=str)
 
+parser.add_argument('--use_data_cache',
+                    help='cache image and audio mel into memory. set true or false', 
+                    default='false', type=str)
+
 args = parser.parse_args()
 
 
@@ -78,10 +82,11 @@ class Dataset(object):
                 img = cv2.imread(fname)
                 if img is None:
                     return None
-                try:
-                    img = cv2.resize(img, (hparams.img_size, hparams.img_size))
-                except Exception as e:
-                    return None
+                
+            try:
+                img = cv2.resize(img, (hparams.img_size, hparams.img_size))
+            except Exception as e:
+                return None
 
             window.append(img)
 
@@ -163,7 +168,7 @@ class Dataset(object):
                 except Exception as e:
                     continue
 
-            mel = self.crop_audio_window(orig_mel.copy(), img_name)
+            mel = self.crop_audio_window(orig_mel.copy(), img_name) # 16,80
 
             if (mel.shape[0] != syncnet_mel_step_size):
                 continue
@@ -172,16 +177,17 @@ class Dataset(object):
             if indiv_mels is None:
                 continue
 
-            window = self.prepare_window(window)
+            window = self.prepare_window(window) # 3,T,H,W
+            
             y = window.copy()
-            window[:, :, window.shape[2]//2:] = 0.
+            window[:, :, window.shape[2]//2:] = 0. # 3,T,H,W
 
             wrong_window = self.prepare_window(wrong_window)
-            x = np.concatenate([window, wrong_window], axis=0)
+            x = np.concatenate([window, wrong_window], axis=0) # 6,T,H,W
 
             x = torch.FloatTensor(x)
-            mel = torch.FloatTensor(mel.T).unsqueeze(0)
-            indiv_mels = torch.FloatTensor(indiv_mels).unsqueeze(1)
+            mel = torch.FloatTensor(mel.T).unsqueeze(0) # 1,80,16
+            indiv_mels = torch.FloatTensor(indiv_mels).unsqueeze(1) # T,1,80,16
             y = torch.FloatTensor(y)
             return x, indiv_mels, mel, y
 
@@ -222,7 +228,7 @@ for p in syncnet.parameters():
 recon_loss = nn.L1Loss()
 
 
-def get_sync_loss(mel, g):
+def get_sync_loss(mel, g): # g =: (B, 3, T, H, W)
     g = g[:, :, :, g.size(3)//2:]
     g = torch.cat([g[:, :, i] for i in range(syncnet_T)], dim=1)
     # B, 3 * T, H//2, W
@@ -382,9 +388,13 @@ if __name__ == "__main__":
     checkpoint_dir = args.checkpoint_dir
 
     # Dataset and Dataloader setup
-    train_memory_handler = MemoryDataHandler(args.data_root, "train")
-    train_dataset = Dataset('train', memory_data_handler=train_memory_handler)
-    test_dataset = Dataset('val')
+    if args.use_data_cache == 'true' or args.use_data_cache == 'True':
+        train_memory_handler = MemoryDataHandler(args.data_root, "tt")
+        train_dataset = Dataset('tt', memory_data_handler=train_memory_handler)
+    else:
+        train_dataset = Dataset('tt')
+
+    test_dataset = Dataset('tt')
 
     train_data_loader = data_utils.DataLoader(
         train_dataset, batch_size=hparams.batch_size, shuffle=True,
@@ -392,7 +402,7 @@ if __name__ == "__main__":
 
     test_data_loader = data_utils.DataLoader(
         test_dataset, batch_size=hparams.batch_size,
-        num_workers=6)
+        num_workers=4)
 
     device = torch.device("cuda" if use_cuda else "cpu")
 

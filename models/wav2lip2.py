@@ -100,13 +100,14 @@ class Wav2Lip(nn.Module):
             nn.Sigmoid()) 
 
     def forward(self, audio_sequences, face_sequences):
-        # audio_sequences = (B, T, 1, 80, 16)
+        # audio_sequences := (B, T, 1, 80, 16)
+        # face_sequences := (B, 6, T, H, W)
         B = audio_sequences.size(0)
 
         input_dim_size = len(face_sequences.size())
         if input_dim_size > 4:
-            audio_sequences = torch.cat([audio_sequences[:, i] for i in range(audio_sequences.size(1))], dim=0)
-            face_sequences = torch.cat([face_sequences[:, :, i] for i in range(face_sequences.size(2))], dim=0)
+            audio_sequences = torch.cat([audio_sequences[:, i] for i in range(audio_sequences.size(1))], dim=0) # B*T,1,80,16
+            face_sequences = torch.cat([face_sequences[:, :, i] for i in range(face_sequences.size(2))], dim=0) # B*T,6,H,W
 
         audio_embedding = self.audio_encoder(audio_sequences) # B, 512, 1, 1
 

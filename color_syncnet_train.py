@@ -22,13 +22,18 @@ from hparams import hparams, get_image_list
 parser = argparse.ArgumentParser(
     description='Code to train the expert lip-sync discriminator')
 
-parser.add_argument(
-    "--data_root", help="Root folder of the preprocessed LRS2 dataset", required=True)
+parser.add_argument("--data_root", 
+                    help="Root folder of the preprocessed LRS2 dataset", required=True)
 
 parser.add_argument('--checkpoint_dir',
                     help='Save checkpoints to this directory', required=True, type=str)
+
 parser.add_argument('--checkpoint_path',
                     help='Resumed from this checkpoint', default=None, type=str)
+
+parser.add_argument('--use_data_cache',
+                    help='cache image and audio mel into memory. set true or false', 
+                    default='false', type=str)
 
 args = parser.parse_args()
 
@@ -151,7 +156,7 @@ class Dataset(object):
                 if self.memory_data_handler and self.memory_data_handler.get_image(fname) is not None:
                     img = self.memory_data_handler.get_image(fname)
                 else:
-                    print("[warning] failed to find image in dict")
+                    # print("[warning] failed to find image in dict")
                     img = cv2.imread(fname)
                 if img is None:
                     all_read = False
@@ -170,7 +175,7 @@ class Dataset(object):
             if self.memory_data_handler and self.memory_data_handler.get_audio_mel(vidname) is not None:
                 orig_mel = self.memory_data_handler.get_audio_mel(vidname)
             else:
-                print("[waring] failed to find mel in dict, vidname={}".format(vidname))
+                # print("[waring] failed to find mel in dict, vidname={}".format(vidname))
                 try:
                     wavpath = join(vidname, "audio.wav")
                     wav = audio.load_wav(wavpath, hparams.sample_rate)
@@ -185,10 +190,9 @@ class Dataset(object):
             if (mel.shape[0] != syncnet_mel_step_size):
                 continue
 
-            # H x W x 3 * T
-            x = np.concatenate(window, axis=2) / 255.
-            x = x.transpose(2, 0, 1)
-            x = x[:, x.shape[1]//2:]
+            x = np.concatenate(window, axis=2) / 255. # H, W, 3*T
+            x = x.transpose(2, 0, 1) # 3*T, H, W
+            x = x[:, x.shape[1]//2:] # 3*T, H//2, W
 
             x = torch.FloatTensor(x)
             mel = torch.FloatTensor(mel.T).unsqueeze(0)
@@ -328,8 +332,11 @@ if __name__ == "__main__":
         os.mkdir(checkpoint_dir)
 
     # Dataset and Dataloader setup
-    train_memory_handler = MemoryDataHandler("train")
-    train_dataset = Dataset('train', memory_data_handler=train_memory_handler)
+    if args.use_data_cache == 'true' or args.use_data_cache == 'True':
+        train_memory_handler = MemoryDataHandler("train")
+        train_dataset = Dataset('train', memory_data_handler=train_memory_handler)
+    else:
+        train_dataset = Dataset('train')
     test_dataset = Dataset('test')
 
     train_data_loader = data_utils.DataLoader(
