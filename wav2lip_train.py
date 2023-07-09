@@ -19,6 +19,7 @@ import random
 import cv2
 import argparse
 from hparams import hparams, get_image_list
+from memory_data_handler import MemoryDataHandler
 
 parser = argparse.ArgumentParser(
     description='Code to train the Wav2Lip model without the visual quality discriminator')
@@ -47,8 +48,9 @@ syncnet_mel_step_size = 16
 
 
 class Dataset(object):
-    def __init__(self, split):
+    def __init__(self, split, memory_data_handler=None):
         self.all_videos = get_image_list(args.data_root, split)
+        self.memory_data_handler = memory_data_handler
 
     def get_frame_id(self, frame):
         return int(basename(frame).split('.')[0])
@@ -70,13 +72,16 @@ class Dataset(object):
             return None
         window = []
         for fname in window_fnames:
-            img = cv2.imread(fname)
-            if img is None:
-                return None
-            try:
-                img = cv2.resize(img, (hparams.img_size, hparams.img_size))
-            except Exception as e:
-                return None
+            if self.memory_data_handler and self.memory_data_handler.get_image(fname) is not None:
+                img = self.memory_data_handler.get_image(fname)
+            else:
+                img = cv2.imread(fname)
+                if img is None:
+                    return None
+                try:
+                    img = cv2.resize(img, (hparams.img_size, hparams.img_size))
+                except Exception as e:
+                    return None
 
             window.append(img)
 
@@ -147,13 +152,16 @@ class Dataset(object):
             if wrong_window is None:
                 continue
 
-            try:
-                wavpath = join(vidname, "audio.wav")
-                wav = audio.load_wav(wavpath, hparams.sample_rate)
+            if self.memory_data_handler and self.memory_data_handler.get_audio_mel(vidname) is not None:
+                orig_mel = self.memory_data_handler.get_audio_mel(vidname)
+            else:
+                try:
+                    wavpath = join(vidname, "audio.wav")
+                    wav = audio.load_wav(wavpath, hparams.sample_rate)
 
-                orig_mel = audio.melspectrogram(wav).T
-            except Exception as e:
-                continue
+                    orig_mel = audio.melspectrogram(wav).T
+                except Exception as e:
+                    continue
 
             mel = self.crop_audio_window(orig_mel.copy(), img_name)
 
@@ -278,7 +286,7 @@ def train(device, model, train_data_loader, test_data_loader, optimizer,
                     average_sync_loss, averaged_recon_loss = eval_model(
                         test_data_loader, global_step, device, model, checkpoint_dir)
 
-                    if average_sync_loss < .75:
+                    if average_sync_loss < .90:
                         # without image GAN a lesser weight is sufficient
                         hparams.set_hparam('syncnet_wt', 0.01)                   
 
@@ -289,7 +297,7 @@ def train(device, model, train_data_loader, test_data_loader, optimizer,
 
 
 def eval_model(test_data_loader, global_step, device, model, checkpoint_dir):
-    eval_steps = 500
+    eval_steps = 700
     print('Evaluating for {} steps'.format(eval_steps))
     sync_losses, recon_losses = [], []
     step = 0
@@ -374,7 +382,8 @@ if __name__ == "__main__":
     checkpoint_dir = args.checkpoint_dir
 
     # Dataset and Dataloader setup
-    train_dataset = Dataset('train')
+    train_memory_handler = MemoryDataHandler("train")
+    train_dataset = Dataset('train', memory_data_handler=train_memory_handler)
     test_dataset = Dataset('val')
 
     train_data_loader = data_utils.DataLoader(
@@ -383,7 +392,7 @@ if __name__ == "__main__":
 
     test_data_loader = data_utils.DataLoader(
         test_dataset, batch_size=hparams.batch_size,
-        num_workers=4)
+        num_workers=6)
 
     device = torch.device("cuda" if use_cuda else "cpu")
 

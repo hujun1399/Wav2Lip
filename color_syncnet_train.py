@@ -90,9 +90,9 @@ class MemoryDataHandler(object):
 
 
 class Dataset(object):
-    def __init__(self, split, memory_data_hander=None):
+    def __init__(self, split, memory_data_handler=None):
         self.all_videos = get_image_list(args.data_root, split)
-        self.memory_data_hander = memory_data_hander
+        self.memory_data_handler = memory_data_handler
 
     def get_frame_id(self, frame):
         return int(basename(frame).split('.')[0])
@@ -148,8 +148,8 @@ class Dataset(object):
             window = []
             all_read = True
             for fname in window_fnames:
-                if self.memory_data_hander and self.memory_data_hander.get_image(fname) is not None:
-                    img = self.memory_data_hander.get_image(fname)
+                if self.memory_data_handler and self.memory_data_handler.get_image(fname) is not None:
+                    img = self.memory_data_handler.get_image(fname)
                 else:
                     print("[warning] failed to find image in dict")
                     img = cv2.imread(fname)
@@ -167,8 +167,8 @@ class Dataset(object):
             if not all_read:
                 continue
 
-            if self.memory_data_hander and self.memory_data_hander.get_audio_mel(vidname) is not None:
-                orig_mel = self.memory_data_hander.get_audio_mel(vidname)
+            if self.memory_data_handler and self.memory_data_handler.get_audio_mel(vidname) is not None:
+                orig_mel = self.memory_data_handler.get_audio_mel(vidname)
             else:
                 print("[waring] failed to find mel in dict, vidname={}".format(vidname))
                 try:
@@ -329,7 +329,7 @@ if __name__ == "__main__":
 
     # Dataset and Dataloader setup
     train_memory_handler = MemoryDataHandler("train")
-    train_dataset = Dataset('train', memory_data_hander=train_memory_handler)
+    train_dataset = Dataset('train', memory_data_handler=train_memory_handler)
     test_dataset = Dataset('test')
 
     train_data_loader = data_utils.DataLoader(
