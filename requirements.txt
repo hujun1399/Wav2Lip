@@ -6,3 +6,4 @@ torch
 torchvision
 tqdm
 numba
+mediapipe==0.10.0

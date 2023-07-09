@@ -13,7 +13,7 @@ from glob import glob
 import audio
 from hparams import hparams as hp
 
-import mediapipe as mp
+import mediapipe
 import gc
 
 parser = argparse.ArgumentParser()
@@ -45,7 +45,7 @@ def process_video_file(vfile, args, thread_id):
 	fulldir = path.join(args.preprocessed_root, dirname, vidname)
 	os.makedirs(fulldir, exist_ok=True)
 
-	face_detection = mp.solutions.face_detection.FaceDetection(
+	face_detection = mediapipe.solutions.face_detection.FaceDetection(
 		model_selection=0, min_detection_confidence=0.7)
 	
 	for idx, frame in enumerate(frames):
@@ -71,8 +71,8 @@ def process_video_file(vfile, args, thread_id):
 				break
 			break
 
-		if idx % (25 * 60) == 0:
-			print("[SubProcess] thread_id={}, idx={}, vfile={}".format(thread_id, idx, vfile))
+		# if idx % (25 * 60) == 0:
+		# 	print("[SubProcess] thread_id={}, idx={}, vfile={}".format(thread_id, idx, vfile))
 
 	face_detection.close()
 
