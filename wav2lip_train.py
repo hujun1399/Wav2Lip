@@ -382,7 +382,7 @@ if __name__ == "__main__":
     checkpoint_dir = args.checkpoint_dir
 
     # Dataset and Dataloader setup
-    train_memory_handler = MemoryDataHandler("train")
+    train_memory_handler = MemoryDataHandler(args.data_root, "train")
     train_dataset = Dataset('train', memory_data_handler=train_memory_handler)
     test_dataset = Dataset('val')
 
