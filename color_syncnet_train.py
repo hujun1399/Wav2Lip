@@ -170,13 +170,14 @@ class Dataset(object):
             if self.memory_data_hander and self.memory_data_hander.get_audio_mel(vidname) is not None:
                 orig_mel = self.memory_data_hander.get_audio_mel(vidname)
             else:
-                print("[waring] failed to find mel in dict")
+                print("[waring] failed to find mel in dict, vidname={}".format(vidname))
                 try:
                     wavpath = join(vidname, "audio.wav")
                     wav = audio.load_wav(wavpath, hparams.sample_rate)
 
                     orig_mel = audio.melspectrogram(wav).T
                 except Exception as e:
+                    print("[waring] failed to compute audio melspectro, vidname={}".format(vidname))
                     continue
 
             mel = self.crop_audio_window(orig_mel.copy(), img_name)
