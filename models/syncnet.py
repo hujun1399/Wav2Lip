@@ -9,27 +9,27 @@ class SyncNet_color(nn.Module):
         super(SyncNet_color, self).__init__()
 
         self.face_encoder = nn.Sequential(
-            Conv2d(15, 32, kernel_size=(7, 7), stride=1, padding=3),
+            Conv2d(15, 32, kernel_size=(7, 7), stride=1, padding=3), # 48,96
 
-            Conv2d(32, 64, kernel_size=5, stride=(1, 2), padding=1),
+            Conv2d(32, 64, kernel_size=5, stride=(1, 2), padding=1), # 48, 48
             Conv2d(64, 64, kernel_size=3, stride=1, padding=1, residual=True),
             Conv2d(64, 64, kernel_size=3, stride=1, padding=1, residual=True),
 
-            Conv2d(64, 128, kernel_size=3, stride=2, padding=1),
+            Conv2d(64, 128, kernel_size=3, stride=2, padding=1), # 24, 24
             Conv2d(128, 128, kernel_size=3, stride=1, padding=1, residual=True),
             Conv2d(128, 128, kernel_size=3, stride=1, padding=1, residual=True),
             Conv2d(128, 128, kernel_size=3, stride=1, padding=1, residual=True),
 
-            Conv2d(128, 256, kernel_size=3, stride=2, padding=1),
+            Conv2d(128, 256, kernel_size=3, stride=2, padding=1), # 12, 12
             Conv2d(256, 256, kernel_size=3, stride=1, padding=1, residual=True),
             Conv2d(256, 256, kernel_size=3, stride=1, padding=1, residual=True),
 
-            Conv2d(256, 512, kernel_size=3, stride=2, padding=1),
+            Conv2d(256, 512, kernel_size=3, stride=2, padding=1), # 6, 6
             Conv2d(512, 512, kernel_size=3, stride=1, padding=1, residual=True),
             Conv2d(512, 512, kernel_size=3, stride=1, padding=1, residual=True),
 
-            Conv2d(512, 512, kernel_size=3, stride=2, padding=1),
-            Conv2d(512, 512, kernel_size=3, stride=1, padding=0),
+            Conv2d(512, 512, kernel_size=3, stride=2, padding=1), # 3, 3
+            Conv2d(512, 512, kernel_size=3, stride=1, padding=0), # 1, 1
             Conv2d(512, 512, kernel_size=1, stride=1, padding=0),)
 
         self.audio_encoder = nn.Sequential(

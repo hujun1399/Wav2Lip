@@ -389,12 +389,12 @@ if __name__ == "__main__":
 
     # Dataset and Dataloader setup
     if args.use_data_cache == 'true' or args.use_data_cache == 'True':
-        train_memory_handler = MemoryDataHandler(args.data_root, "tt")
-        train_dataset = Dataset('tt', memory_data_handler=train_memory_handler)
+        train_memory_handler = MemoryDataHandler(args.data_root, "train")
+        train_dataset = Dataset('train', memory_data_handler=train_memory_handler)
     else:
-        train_dataset = Dataset('tt')
+        train_dataset = Dataset('train')
 
-    test_dataset = Dataset('tt')
+    test_dataset = Dataset('val')
 
     train_data_loader = data_utils.DataLoader(
         train_dataset, batch_size=hparams.batch_size, shuffle=True,
