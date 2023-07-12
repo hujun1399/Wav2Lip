@@ -45,8 +45,8 @@ def process_video_file(vfile, args, thread_id):
 	fulldir = path.join(args.preprocessed_root, dirname, vidname)
 	os.makedirs(fulldir, exist_ok=True)
 
-	face_detection = mediapipe.solutions.face_detection.FaceDetection(
-		model_selection=0, min_detection_confidence=0.7)
+	face_detection = mp.solutions.face_detection.FaceDetection(
+		model_selection=1, min_detection_confidence=0.7)
 	
 	for idx, frame in enumerate(frames):
 		results = face_detection.process(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
