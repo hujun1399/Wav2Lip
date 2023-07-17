@@ -12,11 +12,11 @@ class InferCharactorBuilder(object):
         self.nosmooth = nosmooth
         self.data = {}
 
-        # load kanghui as default
-        kanghui = self.load_identity_files("kanghui")
-        if kanghui:
-            print("Succeed to load kanghui identity files!")
-            self.data['kanghui'] = kanghui
+        # # load kiki as default
+        # kiki = self.load_identity_files("kiki")
+        # if kiki:
+        #     print("Succeed to load kiki identity files!")
+        #     self.data['kiki'] = kiki
 
         if identity_list is not None:
             for name in identity_list:
@@ -62,6 +62,7 @@ class InferCharactorBuilder(object):
                     video_path, idx))
                 continue
 
+            manual_height_bias = 0
             for detection in fd_results.detections:
                 if len(detection.score) != 1 or detection.score[0] < 0.7:
                     continue
@@ -71,6 +72,7 @@ class InferCharactorBuilder(object):
                 x2 = (bbox.xmin + bbox.width) * W
                 y1 = bbox.ymin * H
                 y2 = (bbox.ymin + bbox.height) * H
+                y2 = min(y2 + manual_height_bias, H)
                 results.append([x1, y1, x2, y2])
                 # cv2.imwrite(os.path.join(fulldir, 'raw_{}.jpg'.format(idx)), frame[int(y1):int(y2), int(x1):int(x2)])
                 images.append(frame)
@@ -156,4 +158,4 @@ if __name__ == '__main__':
     # result = charactor_builder.get_identity_info("guilin")
     # print(len(result[0]), result[1].shape)
     # print(result[1][61])
-    charactor_builder.process_and_save_video_identity("/home/james/workspace/Wav2Lip/results/girl_20s.mp4","girl")
+    charactor_builder.process_and_save_video_identity("/home/james/workspace/Wav2Lip/results/kiki_view2.mp4","kiki")

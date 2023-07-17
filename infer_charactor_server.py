@@ -22,7 +22,7 @@ args = parser.parse_args()
 args.img_size = 96
 args.static = False
 args.fps = 25
-args.checkpoint_path = "./checkpoints/wav2lip_gan.pth"
+args.checkpoint_path = "./checkpoints/wav2lip.pth"
 args.wav2lip_batch_size = 32
 
 
@@ -44,7 +44,7 @@ class InferCharactorModel(object):
         self.mel_step_size = 16
 
         # charactor info index
-        self.index_builder = InferCharactorBuilder(identity_list=['guilin'])
+        self.index_builder = InferCharactorBuilder(identity_list=['kiki', 'guilin'])
 
         # generator model
         self.model = self.load_model(args.checkpoint_path)
@@ -218,5 +218,5 @@ class InferCharactorModel(object):
 
 if __name__ == '__main__':
     model = InferCharactorModel()
-    model.inference("guilin", audio_file="./results/boy_10s.mp3",
-                    video_name="guilin_out_0717.mp4")
+    model.inference("kiki", audio_file="./results/kiki_10s.wav",
+                    video_name="kiki_out_0717.mp4")
