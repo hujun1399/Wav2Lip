@@ -22,18 +22,18 @@ args = parser.parse_args()
 args.img_size = 96
 args.static = False
 args.fps = 25
-args.checkpoint_path = "./checkpoints/wav2lip_gan.pth"
+args.checkpoint_path = "./checkpoints/wav2lip.pth"
 args.wav2lip_batch_size = 32
 
 
-from gfpgan import GFPGANer
-restorer = GFPGANer(
-    model_path="/home/james/workspace/GFPGAN/gfpgan/weights/GFPGANv1.3.pth",
-    upscale=2,
-    arch='clean',
-    channel_multiplier=2,
-    bg_upsampler=None,
-    device='cuda' if torch.cuda.is_available() else 'cpu')
+# from gfpgan import GFPGANer
+# restorer = GFPGANer(
+#     model_path="/home/james/workspace/GFPGAN/gfpgan/weights/GFPGANv1.3.pth",
+#     upscale=2,
+#     arch='clean',
+#     channel_multiplier=2,
+#     bg_upsampler=None,
+#     device='cuda' if torch.cuda.is_available() else 'cpu')
 
 class InferCharactorModel(object):
 
@@ -44,7 +44,7 @@ class InferCharactorModel(object):
         self.mel_step_size = 16
 
         # charactor info index
-        self.index_builder = InferCharactorBuilder(identity_list=['guilin'])
+        self.index_builder = InferCharactorBuilder(identity_list=['kiki', 'guilin'])
 
         # generator model
         self.model = self.load_model(args.checkpoint_path)
@@ -208,6 +208,8 @@ class InferCharactorModel(object):
 
         out.release()
 
+        # command = 'ffmpeg -y -i {} -i {} -c:v libx264 -crf 18 -preset slow -strict -2 -q:v 1 {}'.format(
+        #     audio_file, 'temp/result.avi', os.path.join('./results', video_name))
         command = 'ffmpeg -y -i {} -i {} -strict -2 -q:v 1 {}'.format(
             audio_file, 'temp/result.avi', os.path.join('./results', video_name))
         # command = 'ffmpeg -re -i {} -i {} -c:v copy -c:a aac -strict experimental -f flv {}'.format(
@@ -218,5 +220,5 @@ class InferCharactorModel(object):
 
 if __name__ == '__main__':
     model = InferCharactorModel()
-    model.inference("guilin", audio_file="./results/boy_10s.mp3",
-                    video_name="guilin_out_0717.mp4")
+    model.inference("kiki", audio_file="./results/kiki_10s.wav",
+                    video_name="kiki_out_0717.mp4")

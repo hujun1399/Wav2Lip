@@ -11,13 +11,6 @@ class InferCharactorBuilder(object):
     def __init__(self, nosmooth=False, identity_list=None):
         self.nosmooth = nosmooth
         self.data = {}
-
-        # load kanghui as default
-        kanghui = self.load_identity_files("kanghui")
-        if kanghui:
-            print("Succeed to load kanghui identity files!")
-            self.data['kanghui'] = kanghui
-
         if identity_list is not None:
             for name in identity_list:
                 result = self.load_identity_files(name)
@@ -25,16 +18,16 @@ class InferCharactorBuilder(object):
                     print("Succeed to load {} identity files!".format(name))
                     self.data[name] = result
 
-
-    def get_identity_info(self, name="kanghui"):
+    def get_identity_info(self, name="kiki"):
         if name not in self.data:
             print("Failed to find identity={} in local directory.".format(name))
             return None
         return self.data[name]
 
-    def process_and_save_video_identity(self, video_path, identity_name):
+    def process_and_save_video_identity(self, video_path, identity_name, manual_height_bias=0):
         # read video stream
-        print("Start read video stream and detect face boxes. video_path={}".format(video_path))
+        print("Start read video stream and detect face boxes. video_path={}".format(
+            video_path))
         video_stream = cv2.VideoCapture(video_path)
 
         frames = []
@@ -52,16 +45,16 @@ class InferCharactorBuilder(object):
         results = []
         images = []
         fulldir = os.path.join('./results', identity_name)
-        print("fulldir:",fulldir)
+        print("fulldir:", fulldir)
         for idx, frame in enumerate(frames):
-            fd_results = face_detection.process(
-                cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+            fd_results = face_detection.process(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
             H, W, _ = frame.shape
             if fd_results.detections is None:
                 print("[FaceDetection ERORR] no face detected. video_path={}, idx={}".format(
                     video_path, idx))
                 continue
 
+            manual_height_bias = manual_height_bias
             for detection in fd_results.detections:
                 if len(detection.score) != 1 or detection.score[0] < 0.7:
                     continue
@@ -71,23 +64,18 @@ class InferCharactorBuilder(object):
                 x2 = (bbox.xmin + bbox.width) * W
                 y1 = bbox.ymin * H
                 y2 = (bbox.ymin + bbox.height) * H
+                y2 = min(y2 + manual_height_bias, H)
                 results.append([x1, y1, x2, y2])
-                # cv2.imwrite(os.path.join(fulldir, 'raw_{}.jpg'.format(idx)), frame[int(y1):int(y2), int(x1):int(x2)])
+                cv2.imwrite(os.path.join("./results/face", '{}.jpg'.format(idx)), 
+                            frame[int(y1):int(y2), int(x1):int(x2)])
                 images.append(frame)
 
         face_detection.close()
 
         boxes = np.array(results)
-        # print("boxes shape 1:", boxes.shape)
         if not self.nosmooth:
             boxes = self._get_smoothened_boxes(boxes, T=5)
         boxes = np.rint(boxes).astype(int)
-        # print("boxes shape 2:", boxes.shape)
-        # print("image number:", len(images))
-        # for idx, frame in enumerate(images):
-        #     x1, y1, x2, y2 = boxes[idx]
-        #     cv2.imwrite(os.path.join(fulldir, 'smooth_{}.jpg'.format(idx)), images[idx][y1:y2, x1:x2])
-
 
         def _save_identity_file(fulldir, images, boxes):
             if len(images) != len(boxes):
@@ -95,8 +83,7 @@ class InferCharactorBuilder(object):
                 return False
             for idx, image in enumerate(images):
                 try:
-                    cv2.imwrite(os.path.join(
-                        fulldir, '{}.jpg'.format(idx)), image)
+                    cv2.imwrite(os.path.join(fulldir, '{}.jpg'.format(idx)), image)
                 except Exception as e:
                     break
             np.savetxt(os.path.join(fulldir, 'boxes.txt'), boxes)
@@ -153,7 +140,7 @@ class InferCharactorBuilder(object):
 
 if __name__ == '__main__':
     charactor_builder = InferCharactorBuilder()
-    # result = charactor_builder.get_identity_info("guilin")
-    # print(len(result[0]), result[1].shape)
-    # print(result[1][61])
-    charactor_builder.process_and_save_video_identity("/home/james/workspace/Wav2Lip/results/girl_20s.mp4","girl")
+    charactor_builder.process_and_save_video_identity(
+        "/home/james/workspace/Wav2Lip/results/kiki_sdr_high.mp4", "kiki", manual_height_bias=10)
+    charactor_builder.process_and_save_video_identity(
+        "/home/james/workspace/Wav2Lip/results/guilin_20s.mp4", "guilin", manual_height_bias=0)
