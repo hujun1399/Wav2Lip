@@ -1,6 +1,7 @@
 
 import argparse
 import audio
+import copy
 import cv2
 import os
 import subprocess
@@ -21,9 +22,18 @@ args = parser.parse_args()
 args.img_size = 96
 args.static = False
 args.fps = 25
-args.checkpoint_path = "./checkpoints/wav2lip.pth"
+args.checkpoint_path = "./checkpoints/wav2lip_gan.pth"
 args.wav2lip_batch_size = 32
 
+
+from gfpgan import GFPGANer
+restorer = GFPGANer(
+    model_path="/home/james/workspace/GFPGAN/gfpgan/weights/GFPGANv1.3.pth",
+    upscale=2,
+    arch='clean',
+    channel_multiplier=2,
+    bg_upsampler=None,
+    device='cuda' if torch.cuda.is_available() else 'cpu')
 
 class InferCharactorModel(object):
 
@@ -34,7 +44,7 @@ class InferCharactorModel(object):
         self.mel_step_size = 16
 
         # charactor info index
-        self.index_builder = InferCharactorBuilder(identity_list=['guilin', 'girl'])
+        self.index_builder = InferCharactorBuilder(identity_list=['guilin'])
 
         # generator model
         self.model = self.load_model(args.checkpoint_path)
@@ -150,7 +160,7 @@ class InferCharactorModel(object):
 
         full_frames = full_frames[:len(mel_chunks)]
         batch_size = args.wav2lip_batch_size
-        gen = self.datagen(full_frames.copy(), coords, mel_chunks)
+        gen = self.datagen(copy.deepcopy(full_frames), coords, mel_chunks)
         for i, (img_batch, mel_batch, frames, coords) in enumerate(tqdm(
                 gen, total=int(np.ceil(float(len(mel_chunks))/batch_size)))):
             if i == 0:
@@ -165,9 +175,8 @@ class InferCharactorModel(object):
 
             with torch.no_grad():
                 pred = self.model(mel_batch, img_batch)
-
+ 
             pred = pred.cpu().numpy().transpose(0, 2, 3, 1) * 255.
-
             for p, f, c in zip(pred, frames, coords):
                 # y1, y2, x1, x2 = c
                 x1, y1, x2, y2 = c
@@ -175,6 +184,24 @@ class InferCharactorModel(object):
 
                 f[y1:y2, x1:x2] = p
                 out.write(f)
+
+            # pred = pred.cpu().numpy().transpose(0, 2, 3, 1) * 255.
+            # with torch.no_grad():
+            #     for p, f, c in zip(pred, frames, coords):
+            #         x1, y1, x2, y2 = c
+            #         p = cv2.resize(p.astype(np.uint8), (x2 - x1, y2 - y1))
+            #         # p = cv2.resize(p, (x2 - x1, y2 - y1))
+            #         f[y1:y2, x1:x2] = p
+            #         cropped_faces, restored_faces, restored_img = restorer.enhance(
+            #             f,
+            #             has_aligned=False,
+            #             only_center_face=True,
+            #             paste_back=True,
+            #             weight=0.5)
+
+            #         restored_img = cv2.resize(restored_img, (1080,1920))
+            #         out.write(restored_img)
+
 
         end_time = time.time()
         print("sub-total cost time: ", end_time - start_time)
@@ -191,5 +218,5 @@ class InferCharactorModel(object):
 
 if __name__ == '__main__':
     model = InferCharactorModel()
-    model.inference("girl", audio_file="./results/girl_10s.mp3",
-                    video_name="girl_other_voice_10s_v2.mp4")
+    model.inference("guilin", audio_file="./results/boy_10s.mp3",
+                    video_name="guilin_out_0717.mp4")
