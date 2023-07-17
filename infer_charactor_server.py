@@ -166,7 +166,10 @@ class InferCharactorModel(object):
             if i == 0:
                 frame_h, frame_w = full_frames[0].shape[:-1]
                 out = cv2.VideoWriter('temp/result.avi',
-                                      cv2.VideoWriter_fourcc(*'DIVX'), fps, (frame_w, frame_h))
+                                      cv2.VideoWriter_fourcc(*'FFV1'), 
+                                      fps, 
+                                      (frame_w, frame_h), 
+                                      isColor=True) # 无损压缩
 
             img_batch = torch.FloatTensor(np.transpose(
                 img_batch, (0, 3, 1, 2))).to(self.device)
@@ -208,6 +211,8 @@ class InferCharactorModel(object):
 
         out.release()
 
+        # command = 'ffmpeg -y -i {} -i {} -c:v libx264 -crf 18 -preset slow -strict -2 -q:v 1 {}'.format(
+        #     audio_file, 'temp/result.avi', os.path.join('./results', video_name))
         command = 'ffmpeg -y -i {} -i {} -strict -2 -q:v 1 {}'.format(
             audio_file, 'temp/result.avi', os.path.join('./results', video_name))
         # command = 'ffmpeg -re -i {} -i {} -c:v copy -c:a aac -strict experimental -f flv {}'.format(
