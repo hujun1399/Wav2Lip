@@ -165,11 +165,13 @@ class InferCharactorModel(object):
                 gen, total=int(np.ceil(float(len(mel_chunks))/batch_size)))):
             if i == 0:
                 frame_h, frame_w = full_frames[0].shape[:-1]
-                out = cv2.VideoWriter('temp/result.avi',
-                                      cv2.VideoWriter_fourcc(*'FFV1'), 
-                                      fps, 
-                                      (frame_w, frame_h), 
-                                      isColor=True) # 无损压缩
+                out = cv2.VideoWriter('/mnt/sunchaobo/vits_deploy/tmp/fdsfsfsdf/result.avi',
+                                      cv2.VideoWriter_fourcc(*'DIVX'), fps, (frame_w, frame_h))
+                # out = cv2.VideoWriter('temp/result.avi',
+                #                       cv2.VideoWriter_fourcc(*'FFV1'), 
+                #                       fps, 
+                #                       (frame_w, frame_h), 
+                #                       isColor=True) # 无损压缩
 
             img_batch = torch.FloatTensor(np.transpose(
                 img_batch, (0, 3, 1, 2))).to(self.device)

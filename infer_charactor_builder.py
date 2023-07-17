@@ -43,7 +43,6 @@ class InferCharactorBuilder(object):
             if not still_reading:
                 video_stream.release()
                 break
-            # frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             frames.append(frame)
 
         # detect face
@@ -74,15 +73,16 @@ class InferCharactorBuilder(object):
                 y2 = (bbox.ymin + bbox.height) * H
                 y2 = min(y2 + manual_height_bias, H)
                 results.append([x1, y1, x2, y2])
-                cv2.imwrite(os.path.join("./results/face", '{}.png'.format(idx)), 
-                            frame[int(y1):int(y2), int(x1):int(x2)], 
-                            [cv2.IMWRITE_PNG_COMPRESSION, 0])
+                # cv2.imwrite(os.path.join("./results/face", '{}.png'.format(idx)), 
+                #             frame[int(y1):int(y2), int(x1):int(x2)], 
+                #             [cv2.IMWRITE_PNG_COMPRESSION, 0])
+                cv2.imwrite(os.path.join("./results/face", '{}.jpg'.format(idx)), 
+                            frame[int(y1):int(y2), int(x1):int(x2)])
                 images.append(frame)
 
         face_detection.close()
 
         boxes = np.array(results)
-        # print("boxes shape 1:", boxes.shape)
         if not self.nosmooth:
             boxes = self._get_smoothened_boxes(boxes, T=5)
         boxes = np.rint(boxes).astype(int)
@@ -99,7 +99,8 @@ class InferCharactorBuilder(object):
             for idx, image in enumerate(images):
                 try:
                     cv2.imwrite(os.path.join(
-                        fulldir, '{}.png'.format(idx)), image, [cv2.IMWRITE_PNG_COMPRESSION, 0])
+                        fulldir, '{}.jpg'.format(idx)), image)
+                        # fulldir, '{}.png'.format(idx)), image, [cv2.IMWRITE_PNG_COMPRESSION, 0])
                 except Exception as e:
                     break
             np.savetxt(os.path.join(fulldir, 'boxes.txt'), boxes)
@@ -119,7 +120,7 @@ class InferCharactorBuilder(object):
             print("[load_identity_files] fulldir={} do not exits".format(fulldir))
             return False
 
-        img_names = list(glob(os.path.join(fulldir, '*.png')))
+        img_names = list(glob(os.path.join(fulldir, '*.jpg')))
         if len(img_names) <= 3 * 5:
             return False
 
@@ -161,5 +162,5 @@ if __name__ == '__main__':
     # print(result[1][61])
     charactor_builder.process_and_save_video_identity(
         "/home/james/workspace/Wav2Lip/results/kiki_sdr_high.mp4", "kiki", manual_height_bias=10)
-    # charactor_builder.process_and_save_video_identity(
-    #     "/home/james/workspace/Wav2Lip/results/guilin_20s.mp4", "guilin", manual_height_bias=0)
+    charactor_builder.process_and_save_video_identity(
+        "/home/james/workspace/Wav2Lip/results/guilin_20s.mp4", "guilin", manual_height_bias=0)
