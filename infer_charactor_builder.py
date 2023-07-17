@@ -11,13 +11,6 @@ class InferCharactorBuilder(object):
     def __init__(self, nosmooth=False, identity_list=None):
         self.nosmooth = nosmooth
         self.data = {}
-
-        # # load kiki as default
-        # kiki = self.load_identity_files("kiki")
-        # if kiki:
-        #     print("Succeed to load kiki identity files!")
-        #     self.data['kiki'] = kiki
-
         if identity_list is not None:
             for name in identity_list:
                 result = self.load_identity_files(name)
@@ -54,7 +47,7 @@ class InferCharactorBuilder(object):
         fulldir = os.path.join('./results', identity_name)
         print("fulldir:", fulldir)
         for idx, frame in enumerate(frames):
-            fd_results = face_detection.process(frame)
+            fd_results = face_detection.process(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
             H, W, _ = frame.shape
             if fd_results.detections is None:
                 print("[FaceDetection ERORR] no face detected. video_path={}, idx={}".format(
@@ -73,9 +66,6 @@ class InferCharactorBuilder(object):
                 y2 = (bbox.ymin + bbox.height) * H
                 y2 = min(y2 + manual_height_bias, H)
                 results.append([x1, y1, x2, y2])
-                # cv2.imwrite(os.path.join("./results/face", '{}.png'.format(idx)), 
-                #             frame[int(y1):int(y2), int(x1):int(x2)], 
-                #             [cv2.IMWRITE_PNG_COMPRESSION, 0])
                 cv2.imwrite(os.path.join("./results/face", '{}.jpg'.format(idx)), 
                             frame[int(y1):int(y2), int(x1):int(x2)])
                 images.append(frame)
@@ -86,11 +76,6 @@ class InferCharactorBuilder(object):
         if not self.nosmooth:
             boxes = self._get_smoothened_boxes(boxes, T=5)
         boxes = np.rint(boxes).astype(int)
-        # print("boxes shape 2:", boxes.shape)
-        # print("image number:", len(images))
-        # for idx, frame in enumerate(images):
-        #     x1, y1, x2, y2 = boxes[idx]
-        #     cv2.imwrite(os.path.join(fulldir, 'smooth_{}.jpg'.format(idx)), images[idx][y1:y2, x1:x2])
 
         def _save_identity_file(fulldir, images, boxes):
             if len(images) != len(boxes):
@@ -98,9 +83,7 @@ class InferCharactorBuilder(object):
                 return False
             for idx, image in enumerate(images):
                 try:
-                    cv2.imwrite(os.path.join(
-                        fulldir, '{}.jpg'.format(idx)), image)
-                        # fulldir, '{}.png'.format(idx)), image, [cv2.IMWRITE_PNG_COMPRESSION, 0])
+                    cv2.imwrite(os.path.join(fulldir, '{}.jpg'.format(idx)), image)
                 except Exception as e:
                     break
             np.savetxt(os.path.join(fulldir, 'boxes.txt'), boxes)
@@ -157,9 +140,6 @@ class InferCharactorBuilder(object):
 
 if __name__ == '__main__':
     charactor_builder = InferCharactorBuilder()
-    # result = charactor_builder.get_identity_info("guilin")
-    # print(len(result[0]), result[1].shape)
-    # print(result[1][61])
     charactor_builder.process_and_save_video_identity(
         "/home/james/workspace/Wav2Lip/results/kiki_sdr_high.mp4", "kiki", manual_height_bias=10)
     charactor_builder.process_and_save_video_identity(

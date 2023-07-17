@@ -26,14 +26,14 @@ args.checkpoint_path = "./checkpoints/wav2lip.pth"
 args.wav2lip_batch_size = 32
 
 
-from gfpgan import GFPGANer
-restorer = GFPGANer(
-    model_path="/home/james/workspace/GFPGAN/gfpgan/weights/GFPGANv1.3.pth",
-    upscale=2,
-    arch='clean',
-    channel_multiplier=2,
-    bg_upsampler=None,
-    device='cuda' if torch.cuda.is_available() else 'cpu')
+# from gfpgan import GFPGANer
+# restorer = GFPGANer(
+#     model_path="/home/james/workspace/GFPGAN/gfpgan/weights/GFPGANv1.3.pth",
+#     upscale=2,
+#     arch='clean',
+#     channel_multiplier=2,
+#     bg_upsampler=None,
+#     device='cuda' if torch.cuda.is_available() else 'cpu')
 
 class InferCharactorModel(object):
 
@@ -167,11 +167,6 @@ class InferCharactorModel(object):
                 frame_h, frame_w = full_frames[0].shape[:-1]
                 out = cv2.VideoWriter('temp/result.avi',
                                       cv2.VideoWriter_fourcc(*'DIVX'), fps, (frame_w, frame_h))
-                # out = cv2.VideoWriter('temp/result.avi',
-                #                       cv2.VideoWriter_fourcc(*'FFV1'), 
-                #                       fps, 
-                #                       (frame_w, frame_h), 
-                #                       isColor=True) # 无损压缩
 
             img_batch = torch.FloatTensor(np.transpose(
                 img_batch, (0, 3, 1, 2))).to(self.device)
